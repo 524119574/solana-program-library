@@ -51,6 +51,7 @@ async fn test_already_initialized() {
             existing_market.pubkey,
             existing_market.owner.pubkey(),
             usdc_mint.pubkey,
+            spl_token_lending::id()
         )],
         Some(&payer.pubkey()),
     );

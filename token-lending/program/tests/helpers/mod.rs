@@ -476,6 +476,7 @@ impl TestLendingMarket {
                     pubkey,
                     owner.pubkey(),
                     quote_token_mint,
+                    spl_token_lending::id()
                 ),
             ],
             Some(&payer.pubkey()),
@@ -855,6 +856,7 @@ impl TestReserve {
                     lending_market.owner.pubkey(),
                     user_transfer_authority_keypair.pubkey(),
                     dex_market_pubkey,
+                    spl_token::id()
                 ),
             ],
             Some(&payer.pubkey()),

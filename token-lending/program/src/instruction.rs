@@ -755,30 +755,30 @@ pub fn accrue_reserve_interest(program_id: Pubkey, reserve_pubkeys: Vec<Pubkey>)
 
 /// Creates a `FlashLoanStart` instruction
 pub fn flash_loan_start(
-    program_id: &Pubkey,
+    program_id: Pubkey,
     liquidity_amount: u64,
     flash_loan_end_idx: u8,
-    destination_account_pubkey: &Pubkey,
-    reserve_pubkey: &Pubkey,
-    reserve_liquidity_pubkey: &Pubkey,
-    lending_market_pubkey: &Pubkey,
-    token_pubkey: &Pubkey,
+    destination_account_pubkey: Pubkey,
+    reserve_pubkey: Pubkey,
+    reserve_liquidity_pubkey: Pubkey,
+    lending_market_pubkey: Pubkey,
+    token_pubkey: Pubkey,
 ) -> Instruction {
     let (lending_market_authority_pubkey, _bump_seed) =
         Pubkey::find_program_address(&[&lending_market_pubkey.to_bytes()[..32]], &program_id);
 
     let accounts = vec![
-        AccountMeta::new(*destination_account_pubkey, false),
-        AccountMeta::new(*reserve_pubkey, false),
-        AccountMeta::new(*reserve_liquidity_pubkey, false),
-        AccountMeta::new_readonly(*lending_market_pubkey, false),
+        AccountMeta::new(destination_account_pubkey, false),
+        AccountMeta::new(reserve_pubkey, false),
+        AccountMeta::new(reserve_liquidity_pubkey, false),
+        AccountMeta::new_readonly(lending_market_pubkey, false),
         AccountMeta::new_readonly(lending_market_authority_pubkey, false),
-        AccountMeta::new_readonly(*token_pubkey, false),
+        AccountMeta::new_readonly(token_pubkey, false),
         AccountMeta::new_readonly(sysvar::instructions::id(), false),
 
     ];
     Instruction {
-        program_id: *program_id,
+        program_id,
         accounts,
         data: LendingInstruction::FlashLoanStart {
             liquidity_amount,
@@ -789,22 +789,22 @@ pub fn flash_loan_start(
 
 /// Creates a `FlashLoanEnd` instruction
 pub fn flash_loan_end(
-    program_id: &Pubkey,
-    reserve_pubkey: &Pubkey,
-    reserve_liquidity_pubkey: &Pubkey,
-    lending_market_pubkey: &Pubkey,
+    program_id: Pubkey,
+    reserve_pubkey: Pubkey,
+    reserve_liquidity_pubkey: Pubkey,
+    lending_market_pubkey: Pubkey,
 ) -> Instruction {
     let (lending_market_authority_pubkey, _bump_seed) =
         Pubkey::find_program_address(&[&lending_market_pubkey.to_bytes()[..32]], &program_id);
 
     let accounts = vec![
-        AccountMeta::new_readonly(*reserve_pubkey, false),
-        AccountMeta::new_readonly(*reserve_liquidity_pubkey, false),
-        AccountMeta::new_readonly(*lending_market_pubkey, false),
+        AccountMeta::new_readonly(reserve_pubkey, false),
+        AccountMeta::new_readonly(reserve_liquidity_pubkey, false),
+        AccountMeta::new_readonly(lending_market_pubkey, false),
         AccountMeta::new_readonly(lending_market_authority_pubkey, false),
     ];
     Instruction {
-        program_id: *program_id,
+        program_id,
         accounts,
         data: LendingInstruction::FlashLoanEnd.pack(),
     }
