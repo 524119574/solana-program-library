@@ -124,6 +124,7 @@ async fn test_already_initialized() {
             lending_market.owner.pubkey(),
             user_transfer_authority.pubkey(),
             Some(sol_usdc_dex_market.pubkey),
+            spl_token::id(),
         )],
         Some(&payer.pubkey()),
     );
