@@ -176,6 +176,7 @@ fn process_init_reserve(
     let reserve_collateral_mint_info = next_account_info(account_info_iter)?;
     let reserve_collateral_supply_info = next_account_info(account_info_iter)?;
     let reserve_collateral_fees_receiver_info = next_account_info(account_info_iter)?;
+    let flash_loan_fees_receiver_info = next_account_info(account_info_iter)?;
     let lending_market_info = next_account_info(account_info_iter)?;
     let lending_market_owner_info = next_account_info(account_info_iter)?;
     let lending_market_authority_info = next_account_info(account_info_iter)?;
@@ -248,6 +249,7 @@ fn process_init_reserve(
         *reserve_liquidity_mint_info.key,
         reserve_liquidity_mint.decimals,
         *reserve_liquidity_supply_info.key,
+        *flash_loan_fees_receiver_info.key,
     );
     let reserve_collateral_info = ReserveCollateral::new(
         *reserve_collateral_mint_info.key,
@@ -1294,6 +1296,11 @@ fn process_flash_loan_end(
     let reserve_account_info = next_account_info(account_info_iter)?;
     let reserve_liquidity_supply = next_account_info(account_info_iter)?;
     let lending_market_account_info = next_account_info(account_info_iter)?;
+    let derived_lending_market_account_info = next_account_info(account_info_iter)?;
+    let flash_loan_fees_account_info = next_account_info(account_info_iter)?;
+    let token_program_id = next_account_info(account_info_iter)?;
+
+    let lending_market = LendingMarket::unpack(&lending_market_account_info.data.borrow())?;
 
     if reserve_account_info.owner != program_id {
         return Err(LendingError::InvalidAccountOwner.into());
@@ -1305,13 +1312,53 @@ fn process_flash_loan_end(
         return Err(LendingError::InvalidAccountInput.into());
     }
 
-    let token_account = Account::unpack_from_slice(&reserve_liquidity_supply.try_borrow_data()?)?;
+    let liquidity_supply_token_account = Account::unpack_from_slice(&reserve_liquidity_supply.try_borrow_data()?)?;
+    let (origination_fee, host_fee) =
+        reserve.config.fees.calculate_flash_loan_fees(reserve.liquidity.flash_loaned_amount)?;
 
-    if reserve.liquidity.available_amount + reserve.liquidity.flash_loaned_amount > token_account.amount {
+    if reserve.liquidity.available_amount + reserve.liquidity.flash_loaned_amount + origination_fee > liquidity_supply_token_account.amount {
         msg!(
             "Insufficient returned liquidity for reserve after flash loan: {}, it requires: {}",
-            token_account.amount, reserve.liquidity.available_amount + reserve.liquidity.flash_loaned_amount);
+            liquidity_supply_token_account.amount, reserve.liquidity.available_amount + reserve.liquidity.flash_loaned_amount);
         return Err(LendingError::InsufficientLiquidity.into());
+    }
+
+    let authority_signer_seeds = &[
+        lending_market_account_info.key.as_ref(),
+        &[lending_market.bump_seed],
+    ];
+    let lending_market_authority_pubkey =
+        Pubkey::create_program_address(authority_signer_seeds, program_id)?;
+
+    if derived_lending_market_account_info.key != &lending_market_authority_pubkey {
+        return Err(LendingError::InvalidMarketAuthority.into());
+    }
+
+    let mut owner_fee = origination_fee;
+    if let Ok(host_fee_recipient) = next_account_info(account_info_iter) {
+        if host_fee > 0 {
+            owner_fee -= host_fee;
+            spl_token_transfer(TokenTransferParams {
+                source: reserve_liquidity_supply.clone(),
+                destination: host_fee_recipient.clone(),
+                amount: host_fee,
+                authority: derived_lending_market_account_info.clone(),
+                authority_signer_seeds,
+                token_program: token_program_id.clone(),
+            })?;
+        }
+    }
+
+    // transfer remaining fees to owner
+    if owner_fee > 0 {
+        spl_token_transfer(TokenTransferParams {
+            source: reserve_liquidity_supply.clone(),
+            destination: flash_loan_fees_account_info.clone(),
+            amount: owner_fee,
+            authority: derived_lending_market_account_info.clone(),
+            authority_signer_seeds,
+            token_program: token_program_id.clone(),
+        })?;
     }
 
     reserve.liquidity.flash_loan_end()?;

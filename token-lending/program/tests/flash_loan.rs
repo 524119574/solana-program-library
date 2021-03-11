@@ -31,6 +31,11 @@ async fn test_flash_loan() {
 
     let mut reserve_config = TEST_RESERVE_CONFIG;
     reserve_config.loan_to_value_ratio = 80;
+    let flash_loan_amount = 1_000u64;
+    let (flash_loan_fee, host_fee) = TEST_RESERVE_CONFIG
+        .fees
+        .calculate_flash_loan_fees(flash_loan_amount)
+        .unwrap();
 
     let usdc_reserve = add_reserve(
         &mut test,
@@ -41,6 +46,7 @@ async fn test_flash_loan() {
             liquidity_mint_pubkey: usdc_mint.pubkey,
             liquidity_mint_decimals: usdc_mint.decimals,
             config: reserve_config,
+            user_liquidity_amount: flash_loan_fee,
             ..AddReserveArgs::default()
         },
     );
@@ -49,13 +55,13 @@ async fn test_flash_loan() {
 
     let borrow_amount =
         get_token_balance(&mut banks_client, usdc_reserve.user_liquidity_account).await;
-    assert_eq!(borrow_amount, 0);
+    assert_eq!(borrow_amount, flash_loan_fee);
 
     let mut transaction = Transaction::new_with_payer(
         &[
             flash_loan_start(
                 spl_token_lending::id(),
-                25u64,
+                flash_loan_amount,
                 2u8,
                 usdc_reserve.user_liquidity_account,
                 usdc_reserve.pubkey,
@@ -69,13 +75,15 @@ async fn test_flash_loan() {
                 &usdc_reserve.liquidity_supply,
                 &user_accounts_owner.pubkey(),
                 &[],
-                25u64
+                flash_loan_amount + flash_loan_fee
             ).unwrap(),
             flash_loan_end(
                 spl_token_lending::id(),
                 usdc_reserve.pubkey,
                 usdc_reserve.liquidity_supply,
                 lending_market.pubkey,
+                usdc_reserve.flash_loan_fees_receiver,
+                Some(usdc_reserve.liquidity_host),
             )
         ],
         Some(&payer.pubkey()),
@@ -86,4 +94,13 @@ async fn test_flash_loan() {
         recent_blockhash,
     );
     assert!(banks_client.process_transaction(transaction).await.is_ok());
+
+    let fee_balance =
+        get_token_balance(&mut banks_client, usdc_reserve.flash_loan_fees_receiver).await;
+    assert_eq!(fee_balance, flash_loan_fee - host_fee);
+
+    let host_fee_balance =
+        get_token_balance(&mut banks_client, usdc_reserve.liquidity_host).await;
+    assert_eq!(host_fee_balance, host_fee);
+
 }
