@@ -1212,6 +1212,11 @@ fn process_flash_loan_start(
         return Err(LendingError::InvalidAccountInput.into());
     }
 
+    if &reserve.liquidity.supply_pubkey != reserve_liquidity_account_info.key {
+        msg!("Invalid reserve liquidity supply account input");
+        return Err(LendingError::InvalidAccountInput.into());
+    }
+
     if reserve.liquidity.available_amount < liquidity_amount {
         msg!("Not enough liquidity for flash loan");
         return Err(LendingError::InsufficientLiquidity.into());
@@ -1231,13 +1236,28 @@ fn process_flash_loan_start(
 
     if &flash_loan_end_instruction.program_id != program_id {
         msg!("program id not matching: {}, {}", &flash_loan_end_instruction.program_id, program_id);
-        return Err(LendingError::InvalidFlashLoanReturn.into());
+        return Err(LendingError::InvalidFlashLoanEnd.into());
     }
 
     let lending_instruction = LendingInstruction::unpack(&flash_loan_end_instruction.data)?;
     if lending_instruction != FlashLoanEnd {
         msg!("Not a flash loan end instruction.");
-        return Err(LendingError::InvalidFlashLoanReturn.into());
+        return Err(LendingError::InvalidFlashLoanEnd.into());
+    }
+
+    if flash_loan_end_instruction.accounts[0].pubkey != *reserve_account_info.key {
+        msg!("Different reserve between flash loan start and flash loan end");
+        return Err(LendingError::InvalidFlashLoanEnd.into());
+    }
+
+    if flash_loan_end_instruction.accounts[1].pubkey != *reserve_liquidity_account_info.key {
+        msg!("Different reserve liquidity supply between flash loan start and flash loan end");
+        return Err(LendingError::InvalidFlashLoanEnd.into());
+    }
+
+    if flash_loan_end_instruction.accounts[2].pubkey != *lending_market_account_info.key {
+        msg!("Different lending market between flash loan start and flash loan end");
+        return Err(LendingError::InvalidFlashLoanEnd.into());
     }
 
     let authority_signer_seeds = &[

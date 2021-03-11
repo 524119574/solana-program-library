@@ -127,7 +127,7 @@ pub enum LendingError {
     TokenBurnFailed,
     /// Invalid flash loan return instruction
     #[error("Invalid flash loan return instruction.")]
-    InvalidFlashLoanReturn,
+    InvalidFlashLoanEnd,
     /// Error parsing instruction
     #[error("Error parsing instruction.")]
     ErrorParsingInstruction,
