@@ -389,6 +389,8 @@ pub struct ReserveLiquidity {
     pub available_amount: u64,
     /// Reserve liquidity borrowed
     pub borrowed_amount_wads: Decimal,
+    /// Reserve flash loan amount, this should always be 0 before and after the execution
+    pub flash_loaned_amount: u64,
 }
 
 impl ReserveLiquidity {
@@ -400,6 +402,7 @@ impl ReserveLiquidity {
             supply_pubkey,
             available_amount: 0,
             borrowed_amount_wads: Decimal::zero(),
+            flash_loaned_amount: 0,
         }
     }
 
@@ -439,6 +442,24 @@ impl ReserveLiquidity {
             return Ok(Rate::zero());
         }
         self.borrowed_amount_wads.try_div(total_supply)?.try_into()
+    }
+
+    /// Record the amount that is in the flash loan.
+    pub fn flash_loan_start(&mut self, borrow_amount: u64) -> ProgramResult {
+        if borrow_amount > self.available_amount {
+            return Err(LendingError::InsufficientLiquidity.into());
+        }
+
+        self.available_amount -= borrow_amount;
+        self.flash_loaned_amount += borrow_amount;
+        Ok(())
+    }
+
+    /// Return the amount that is in the flash loan.
+    pub fn flash_loan_end(&mut self) -> ProgramResult {
+        self.available_amount += self.flash_loaned_amount;
+        self.flash_loaned_amount = 0;
+        Ok(())
     }
 }
 
@@ -638,10 +659,11 @@ impl Pack for Reserve {
             total_borrows,
             available_liquidity,
             collateral_mint_supply,
+            flash_loaned_amount,
             __padding,
         ) = array_refs![
-            input, 1, 8, 32, 32, 1, 32, 32, 32, 32, 36, 1, 1, 1, 1, 1, 1, 1, 8, 1, 16, 16, 8, 8,
-            300
+            input, 1, 8, 32, 32, 1, 32, 32, 32, 32, 36, 1, 1, 1, 1, 1, 1, 1, 8, 1, 16, 16, 8, 8, 8,
+            292
         ];
         Ok(Self {
             version: u8::from_le_bytes(*version),
@@ -655,6 +677,7 @@ impl Pack for Reserve {
                 supply_pubkey: Pubkey::new_from_array(*liquidity_supply),
                 available_amount: u64::from_le_bytes(*available_liquidity),
                 borrowed_amount_wads: unpack_decimal(total_borrows),
+                flash_loaned_amount: u64::from_le_bytes(*flash_loaned_amount),
             },
             collateral: ReserveCollateral {
                 mint_pubkey: Pubkey::new_from_array(*collateral_mint),
@@ -704,10 +727,11 @@ impl Pack for Reserve {
             total_borrows,
             available_liquidity,
             collateral_mint_supply,
+            flash_loaned_amount,
             _padding,
         ) = mut_array_refs![
-            output, 1, 8, 32, 32, 1, 32, 32, 32, 32, 36, 1, 1, 1, 1, 1, 1, 1, 8, 1, 16, 16, 8, 8,
-            300
+            output, 1, 8, 32, 32, 1, 32, 32, 32, 32, 36, 1, 1, 1, 1, 1, 1, 1, 8, 1, 16, 16, 8, 8, 8,
+            292
         ];
         *version = self.version.to_le_bytes();
         *last_update_slot = self.last_update_slot.to_le_bytes();
@@ -721,6 +745,7 @@ impl Pack for Reserve {
         liquidity_supply.copy_from_slice(self.liquidity.supply_pubkey.as_ref());
         *available_liquidity = self.liquidity.available_amount.to_le_bytes();
         pack_decimal(self.liquidity.borrowed_amount_wads, total_borrows);
+        *flash_loaned_amount = self.liquidity.flash_loaned_amount.to_le_bytes();
 
         // collateral info
         collateral_mint.copy_from_slice(self.collateral.mint_pubkey.as_ref());

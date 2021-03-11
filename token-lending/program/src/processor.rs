@@ -1206,7 +1206,8 @@ fn process_flash_loan_start(
     if reserve_account_info.owner != program_id {
         return Err(LendingError::InvalidAccountOwner.into());
     }
-    let reserve = Reserve::unpack(&reserve_account_info.data.borrow())?;
+
+    let mut reserve = Reserve::unpack(&reserve_account_info.data.borrow())?;
     if &reserve.lending_market != lending_market_account_info.key {
         msg!("Invalid reserve lending market account");
         return Err(LendingError::InvalidAccountInput.into());
@@ -1271,8 +1272,9 @@ fn process_flash_loan_start(
         return Err(LendingError::InvalidMarketAuthority.into());
     }
 
-    msg!("Available amount: {}, transfer amount: {}", reserve.liquidity.available_amount, liquidity_amount);
-    // borrow liquidity
+    reserve.liquidity.flash_loan_start(liquidity_amount)?;
+    Reserve::pack(reserve, &mut reserve_account_info.data.borrow_mut())?;
+
     spl_token_transfer(TokenTransferParams {
         source: reserve_liquidity_account_info.clone(),
         destination: destination_token_account_info.clone(),
@@ -1297,18 +1299,23 @@ fn process_flash_loan_end(
         return Err(LendingError::InvalidAccountOwner.into());
     }
 
-    let reserve = Reserve::unpack(&reserve_account_info.data.borrow())?;
+    let mut reserve = Reserve::unpack(&reserve_account_info.data.borrow())?;
     if &reserve.lending_market != lending_market_account_info.key {
         msg!("Invalid reserve lending market account");
         return Err(LendingError::InvalidAccountInput.into());
     }
 
     let token_account = Account::unpack_from_slice(&reserve_liquidity_supply.try_borrow_data()?)?;
-    // The invariant is that the available_amount is always the same as the amount in the token account.
-    if reserve.liquidity.available_amount > token_account.amount {
-        msg!("Insufficient returned liquidity for flash loan: {}, while it requires: {}", token_account.amount, reserve.liquidity.available_amount);
+
+    if reserve.liquidity.available_amount + reserve.liquidity.flash_loaned_amount > token_account.amount {
+        msg!(
+            "Insufficient returned liquidity for reserve after flash loan: {}, it requires: {}",
+            token_account.amount, reserve.liquidity.available_amount + reserve.liquidity.flash_loaned_amount);
         return Err(LendingError::InsufficientLiquidity.into());
     }
+
+    reserve.liquidity.flash_loan_end()?;
+    Reserve::pack(reserve, &mut reserve_account_info.data.borrow_mut())?;
 
     Ok(())
 }
