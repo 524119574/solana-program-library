@@ -134,12 +134,12 @@ $ spl-token balance 7UX2i7SucgLMQcfZ75s3VXmZZY4YRUyJN9X1RgfMoDUi
 
 ```sh
 $ spl-token accounts
-Account                                      Token                                        Balance
--------------------------------------------------------------------------------------------------
-2ryb53FGVLVYFXmAemN7avawevuNFXwTVetMpH9ag3XZ 7e2X5oeAAJyUTi4PfSGXFLGhyPw2H8oELm1mx87ZCgwF 84
-7UX2i7SucgLMQcfZ75s3VXmZZY4YRUyJN9X1RgfMoDUi AQoKYV7tYpTrFZN6P5oUufbQKAUr9mNYGe1TTJC9wajM 100
-CqAxDdBRnawzx9q4PYM3wrybLHBhDZ4P6BTV13WsRJYJ AQoKYV7tYpTrFZN6P5oUufbQKAUr9mNYGe1TTJC9wajM 0
-JAopo117aj6HMwCRjXSyNpZfGDJRi7ukqHgs2inXD8Rc AQoKYV7tYpTrFZN6P5oUufbQKAUr9mNYGe1TTJC9wajM 0
+Token                                         Balance
+------------------------------------------------------------
+7e2X5oeAAJyUTi4PfSGXFLGhyPw2H8oELm1mx87ZCgwF  84
+AQoKYV7tYpTrFZN6P5oUufbQKAUr9mNYGe1TTJC9wajM  100
+AQoKYV7tYpTrFZN6P5oUufbQKAUr9mNYGe1TTJC9wajM  0    (Aux-1*)
+AQoKYV7tYpTrFZN6P5oUufbQKAUr9mNYGe1TTJC9wajM  1    (Aux-2*)
 ```
 
 ### Example: Wrapping SOL in a Token
@@ -204,11 +204,11 @@ Creating account CqAxDdBRnawzx9q4PYM3wrybLHBhDZ4P6BTV13WsRJYJ
 Signature: 4yPWj22mbyLu5mhfZ5WATNfYzTt5EQ7LGzryxM7Ufu7QCVjTE7czZdEBqdKR7vjKsfAqsBdjU58NJvXrTqCXvfWW
 ```
 ```
-$ spl-token accounts AQoKYV7tYpTrFZN6P5oUufbQKAUr9mNYGe1TTJC9wajM
-Account                                      Token                                        Balance
--------------------------------------------------------------------------------------------------
-7UX2i7SucgLMQcfZ75s3VXmZZY4YRUyJN9X1RgfMoDUi AQoKYV7tYpTrFZN6P5oUufbQKAUr9mNYGe1TTJC9wajM 100
-CqAxDdBRnawzx9q4PYM3wrybLHBhDZ4P6BTV13WsRJYJ AQoKYV7tYpTrFZN6P5oUufbQKAUr9mNYGe1TTJC9wajM 0
+$ spl-token accounts AQoKYV7tYpTrFZN6P5oUufbQKAUr9mNYGe1TTJC9wajM -v
+Account                                       Token                                         Balance
+--------------------------------------------------------------------------------------------------------
+7UX2i7SucgLMQcfZ75s3VXmZZY4YRUyJN9X1RgfMoDUi  AQoKYV7tYpTrFZN6P5oUufbQKAUr9mNYGe1TTJC9wajM  100
+CqAxDdBRnawzx9q4PYM3wrybLHBhDZ4P6BTV13WsRJYJ  AQoKYV7tYpTrFZN6P5oUufbQKAUr9mNYGe1TTJC9wajM  0    (Aux-1*)
 ```
 ```
 $ spl-token transfer 7UX2i7SucgLMQcfZ75s3VXmZZY4YRUyJN9X1RgfMoDUi 50 CqAxDdBRnawzx9q4PYM3wrybLHBhDZ4P6BTV13WsRJYJ
@@ -219,11 +219,11 @@ Transfer 50 tokens
 Signature: 5a3qbvoJQnTAxGPHCugibZTbSu7xuTgkxvF4EJupRjRXGgZZrnWFmKzfEzcqKF2ogCaF4QKVbAtuFx7xGwrDUcGd
 ```
 ```
-$ spl-token accounts AQoKYV7tYpTrFZN6P5oUufbQKAUr9mNYGe1TTJC9wajM
-Account                                      Token                                        Balance
--------------------------------------------------------------------------------------------------
-7UX2i7SucgLMQcfZ75s3VXmZZY4YRUyJN9X1RgfMoDUi AQoKYV7tYpTrFZN6P5oUufbQKAUr9mNYGe1TTJC9wajM 50
-CqAxDdBRnawzx9q4PYM3wrybLHBhDZ4P6BTV13WsRJYJ AQoKYV7tYpTrFZN6P5oUufbQKAUr9mNYGe1TTJC9wajM 50
+$ spl-token accounts AQoKYV7tYpTrFZN6P5oUufbQKAUr9mNYGe1TTJC9wajM -v
+Account                                       Token                                         Balance
+--------------------------------------------------------------------------------------------------------
+7UX2i7SucgLMQcfZ75s3VXmZZY4YRUyJN9X1RgfMoDUi  AQoKYV7tYpTrFZN6P5oUufbQKAUr9mNYGe1TTJC9wajM  50
+CqAxDdBRnawzx9q4PYM3wrybLHBhDZ4P6BTV13WsRJYJ  AQoKYV7tYpTrFZN6P5oUufbQKAUr9mNYGe1TTJC9wajM  50  (Aux-1*)
 ```
 
 ### Example: Create a non-fungible token
@@ -657,10 +657,6 @@ to an account with unknown private key or destroying a private key. But the act
 of burning by using `Burn` instructions is more explicit and can be confirmed on
 chain by any parties.
 
-Note: there is a method by which a malicious and determined account owner
-can silently burn their tokens without updating supply on chain by making an
-account that is removed by rent collection because of [this known issue](#rent-exemption-loophole).
-
 ### Authority delegation
 
 Account owners may delegate authority over some or all of their token balance
@@ -720,15 +716,6 @@ To ensure a reliable calculation of supply, a consistency valid Mint, and
 consistently valid Multisig accounts all Solana accounts holding an Account,
 Mint, or Multisig must contain enough SOL to be considered [rent
 exempt](https://docs.solana.com/implemented-proposals/rent)
-
-#### Rent-exemption loophole
-
-However note that there is currently a loophole to escape from the rent-exemption
-rule. It is possible to create SPL Token accounts that are not rent exempt by
-spoofing the Rent sysvar, since
-[there are insufficient sysvar checks](https://github.com/solana-labs/solana/pull/13175)
-in the program. This could be abused to burn tokens by transferring tokens to
-a non-exempt Account that is subsequently rent-collected out of existence.
 
 ### Closing accounts
 

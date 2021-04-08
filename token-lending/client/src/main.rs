@@ -33,73 +33,15 @@ pub fn main() {
 
     let token_pubkey: Pubkey = Pubkey::from_str("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA").unwrap();
 
-    let path = &format!("{}/id.json", KEYPAIR_PATH);
-    println!("{}", path);
-    let payer = read_keypair_file(path).unwrap();
+    let sol_usdc_dex_market = DexMarket {
+        name: "sol_usdc",
+        pubkey: Pubkey::from_str("9wFFyRfZBsuAha4YcuxcXLKwMxJR43S7fPfQLusDBzvT").unwrap(),
+    };
 
-    // Create and initialize mint.
-    let mint_account = Keypair::new();
-    println!("mint account public key is: {}", mint_account.pubkey());
-    let create_mint_ix = create_account(
-        &payer.pubkey(),
-        &mint_account.pubkey(),
-        client
-            .get_minimum_balance_for_rent_exemption(Mint::LEN)
-            .unwrap(),
-        Mint::LEN as u64,
-        &token_pubkey,
-    );
-    let init_mint_ix = initialize_mint(
-        &token_pubkey,
-        &mint_account.pubkey(),
-        &payer.pubkey(),
-            Option::None,
-        6,
-    ).unwrap();
-
-    // Create, initialize and mint to a new token account.
-    let token_account = Keypair::new();
-    let token_account_pubkey = token_account.pubkey();
-    println!("token account public key is: {}", token_account.pubkey());
-    let create_token_account = create_account(
-        &payer.pubkey(),
-        &token_account.pubkey(),
-        client
-            .get_minimum_balance_for_rent_exemption(Token::LEN)
-            .unwrap(),
-        Token::LEN as u64,
-        &token_pubkey,
-    );
-    let init_token_account_ix = initialize_account(
-        &token_pubkey,
-        &token_account.pubkey(),
-        &mint_account.pubkey(),
-        &payer.pubkey(),
-    ).unwrap();
-    let mint_to_ix = mint_to(
-        &token_pubkey,
-        &mint_account.pubkey(),
-        &token_account.pubkey(),
-        &payer.pubkey(),
-        &[&payer.pubkey()],
-        1_000_000_000,
-    ).unwrap();
-
-
-    let mut transaction = Transaction::new_with_payer(
-        &[
-            create_mint_ix,
-            init_mint_ix,
-            create_token_account,
-            init_token_account_ix,
-            mint_to_ix,
-        ],
-        Some(&payer.pubkey()),
-    );
-
-    let recent_blockhash = client.get_recent_blockhash().unwrap().0;
-    transaction.sign(&[&payer, &mint_account, &token_account], recent_blockhash);
-    client.send_and_confirm_transaction(&transaction).unwrap();
+    let srm_usdc_dex_market = DexMarket {
+        name: "srm_usdc",
+        pubkey: Pubkey::from_str("ByRys5tuUWDgL73G8JBAEfkdFf8JWBzPBDHsBVQ5vbQA").unwrap(),
+    };
 
     let quote_token_mint = mint_account.pubkey();
     let (lending_market_owner, lending_market_pubkey, _lending_market) =

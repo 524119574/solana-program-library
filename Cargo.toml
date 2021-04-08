@@ -1,6 +1,7 @@
 [workspace]
 members = [
   "associated-token-account/program",
+  "binary-oracle-pair/program",
   "examples/rust/cross-program-invocation",
   "examples/rust/custom-heap",
   "examples/rust/logging",
@@ -10,6 +11,7 @@ members = [
   "feature-proposal/cli",
   "libraries/math",
   "memo/program",
+  "record/program",
   "shared-memory/program",
   "stake-pool/cli",
   "stake-pool/program",
