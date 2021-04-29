@@ -34,7 +34,7 @@ pub enum LendingInstruction {
     ///   0. `[writable]` Lending market account.
     ///   1. `[]` Quote currency SPL Token mint. Must be initialized.
     ///   2. `[]` Rent sysvar
-    ///   3. '[]` Token program id
+    ///   3. `[]` Token program id
     InitLendingMarket {
         /// Owner authority which can add new reserves
         market_owner: Pubkey,
@@ -60,7 +60,7 @@ pub enum LendingInstruction {
     ///   11 `[]` User transfer authority ($authority).
     ///   12 `[]` Clock sysvar
     ///   13 `[]` Rent sysvar
-    ///   14 '[]` Token program id
+    ///   14 `[]` Token program id
     ///   15 `[optional]` Serum DEX market account. Not required for quote currency reserves. Must be initialized and match quote and base currency.
     InitReserve {
         /// Initial amount of liquidity to deposit into the new reserve
@@ -84,7 +84,7 @@ pub enum LendingInstruction {
     ///   7. `[]` Derived lending market authority.
     ///   8. `[]` Clock sysvar
     ///   9. `[]` Rent sysvar
-    ///   10 '[]` Token program id
+    ///   10 `[]` Token program id
     InitObligation,
 
     // 3
@@ -102,7 +102,7 @@ pub enum LendingInstruction {
     ///   6. `[]` Derived lending market authority.
     ///   7. `[signer]` User transfer authority ($authority).
     ///   8. `[]` Clock sysvar
-    ///   9. '[]` Token program id
+    ///   9. `[]` Token program id
     DepositReserveLiquidity {
         /// Amount to deposit into the reserve
         liquidity_amount: u64,
@@ -153,7 +153,7 @@ pub enum LendingInstruction {
     ///   14 `[]` Dex market order book side
     ///   15 `[]` Temporary memory
     ///   16 `[]` Clock sysvar
-    ///   17 '[]` Token program id
+    ///   17 `[]` Token program id
     ///   18 `[optional, writable]` Deposit reserve collateral host fee receiver account.
     BorrowReserveLiquidity {
         // TODO: slippage constraint
@@ -497,6 +497,7 @@ pub fn init_lending_market(
     lending_market_pubkey: Pubkey,
     lending_market_owner: Pubkey,
     quote_token_mint: Pubkey,
+    token_id: Pubkey,
 ) -> Instruction {
     Instruction {
         program_id,
@@ -504,7 +505,7 @@ pub fn init_lending_market(
             AccountMeta::new(lending_market_pubkey, false),
             AccountMeta::new_readonly(quote_token_mint, false),
             AccountMeta::new_readonly(sysvar::rent::id(), false),
-            AccountMeta::new_readonly(spl_token::id(), false),
+            AccountMeta::new_readonly(token_id, false),
         ],
         data: LendingInstruction::InitLendingMarket {
             market_owner: lending_market_owner,
@@ -531,6 +532,7 @@ pub fn init_reserve(
     lending_market_owner_pubkey: Pubkey,
     user_transfer_authority_pubkey: Pubkey,
     dex_market_pubkey: Option<Pubkey>,
+    token_pubkey: Pubkey,
 ) -> Instruction {
     let (lending_market_authority_pubkey, _bump_seed) =
         Pubkey::find_program_address(&[&lending_market_pubkey.to_bytes()[..32]], &program_id);
@@ -549,7 +551,7 @@ pub fn init_reserve(
         AccountMeta::new_readonly(user_transfer_authority_pubkey, true),
         AccountMeta::new_readonly(sysvar::clock::id(), false),
         AccountMeta::new_readonly(sysvar::rent::id(), false),
-        AccountMeta::new_readonly(spl_token::id(), false),
+        AccountMeta::new_readonly(token_pubkey, false),
     ];
 
     if let Some(dex_market_pubkey) = dex_market_pubkey {
