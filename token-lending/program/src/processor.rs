@@ -24,7 +24,9 @@ use solana_program::{
     pubkey::Pubkey,
     sysvar::{clock::Clock, rent::Rent, Sysvar},
 };
-use spl_token::state::Account as Token;
+use spl_token::state::{Account as Token, Account};
+use spl_token::solana_program::sysvar::instructions::{load_instruction_at, load_current_index};
+use crate::instruction::LendingInstruction::FlashLoanEnd;
 
 /// Processes an instruction
 pub fn process_instruction(
@@ -108,6 +110,7 @@ fn process_init_lending_market(
     }
 
     assert_rent_exempt(rent, lending_market_info)?;
+    let _bump_seed = Pubkey::find_program_address(&[lending_market_info.key.as_ref()], program_id).1;
     let mut new_lending_market: LendingMarket = assert_uninitialized(lending_market_info)?;
     let bump_seed = Pubkey::find_program_address(&[lending_market_info.key.as_ref()], program_id).1;
     new_lending_market.version = PROGRAM_VERSION;
@@ -285,7 +288,7 @@ fn process_init_reserve(
     spl_token_init_account(TokenInitializeAccountParams {
         account: reserve_collateral_supply_info.clone(),
         mint: reserve_collateral_mint_info.clone(),
-        owner: lending_market_authority_info.clone(),
+        owner: user_transfer_authority_info.clone(),
         rent: rent_info.clone(),
         token_program: token_program_id.clone(),
     })?;
