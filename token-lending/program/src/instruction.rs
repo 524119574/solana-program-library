@@ -480,6 +480,7 @@ pub fn init_lending_market(
     lending_market_pubkey: Pubkey,
     lending_market_owner: Pubkey,
     quote_token_mint: Pubkey,
+    token_id: Pubkey,
 ) -> Instruction {
     Instruction {
         program_id,
@@ -487,7 +488,7 @@ pub fn init_lending_market(
             AccountMeta::new(lending_market_pubkey, false),
             AccountMeta::new_readonly(quote_token_mint, false),
             AccountMeta::new_readonly(sysvar::rent::id(), false),
-            AccountMeta::new_readonly(spl_token::id(), false),
+            AccountMeta::new_readonly(token_id, false),
         ],
         data: LendingInstruction::InitLendingMarket {
             owner: lending_market_owner,
@@ -553,7 +554,7 @@ pub fn init_reserve(
         AccountMeta::new_readonly(user_transfer_authority_pubkey, true),
         AccountMeta::new_readonly(sysvar::clock::id(), false),
         AccountMeta::new_readonly(sysvar::rent::id(), false),
-        AccountMeta::new_readonly(spl_token::id(), false),
+        AccountMeta::new_readonly(token_pubkey, false),
     ];
     if let Some(reserve_liquidity_oracle_pubkey) = reserve_liquidity_oracle_pubkey {
         accounts.push(AccountMeta::new_readonly(
