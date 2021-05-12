@@ -12,6 +12,7 @@
   "compilerOptions": {
     "declaration": true,
     "moduleResolution": "node",
+    "esModuleInterop": true,
     "module": "es2015",
     "baseUrl": "./",
     "paths": {

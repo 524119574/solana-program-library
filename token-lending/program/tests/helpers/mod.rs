@@ -1,5 +1,6 @@
 #![allow(dead_code)]
 
+pub mod flash_loan_receiver;
 pub mod genesis;
 
 use assert_matches::*;
@@ -53,6 +54,8 @@ pub const TEST_RESERVE_CONFIG: ReserveConfig = ReserveConfig {
     fees: ReserveFees {
         borrow_fee_wad: 100_000_000_000,
         /// 0.00001% (Aave borrow fee)
+        flash_loan_fee_wad: 3_000_000_000_000_000,
+        /// 0.3% (Aave flash loan fee)
         host_fee_percentage: 20,
     },
 };
@@ -465,6 +468,29 @@ pub fn add_reserve(
     }
 }
 
+pub fn add_account_for_program(
+    test: &mut ProgramTest,
+    program_derived_account: &Pubkey,
+    amount: u64,
+    mint_pubkey: &Pubkey,
+) -> Pubkey {
+    let program_owned_token_account = Keypair::new();
+    test.add_packable_account(
+        program_owned_token_account.pubkey(),
+        u32::MAX as u64,
+        &Token {
+            mint: *mint_pubkey,
+            owner: *program_derived_account,
+            amount,
+            state: AccountState::Initialized,
+            is_native: COption::None,
+            ..Token::default()
+        },
+        &spl_token::id(),
+    );
+    program_owned_token_account.pubkey()
+}
+
 pub struct TestLendingMarket {
     pub pubkey: Pubkey,
     pub owner: Keypair,
@@ -770,19 +796,10 @@ impl TestReserve {
             .unwrap()
             .unwrap();
         let liquidity_mint = Mint::unpack(&liquidity_mint_account.data[..]).unwrap();
-
+        println!("before signed!!!");
         let rent = banks_client.get_rent().await.unwrap();
         let mut transaction = Transaction::new_with_payer(
             &[
-                approve(
-                    &spl_token::id(),
-                    &user_liquidity_pubkey,
-                    &user_transfer_authority_keypair.pubkey(),
-                    &user_accounts_owner.pubkey(),
-                    &[],
-                    liquidity_amount,
-                )
-                .unwrap(),
                 create_account(
                     &payer.pubkey(),
                     &collateral_mint_keypair.pubkey(),
@@ -832,6 +849,44 @@ impl TestReserve {
                     Reserve::LEN as u64,
                     &spl_token_lending::id(),
                 ),
+                approve(
+                    &spl_token::id(),
+                    &user_liquidity_pubkey,
+                    &user_transfer_authority_keypair.pubkey(),
+                    &user_accounts_owner.pubkey(),
+                    &[],
+                    liquidity_amount,
+                )
+                .unwrap(),
+            ],
+            Some(&payer.pubkey()),
+        );
+
+        let recent_blockhash = banks_client.get_recent_blockhash().await.unwrap();
+        transaction.sign(
+            &vec![
+                payer,
+                user_accounts_owner,
+                &reserve_keypair,
+                &collateral_mint_keypair,
+                &collateral_supply_keypair,
+                &liquidity_supply_keypair,
+                &liquidity_fee_receiver_keypair,
+                &liquidity_host_keypair,
+                &user_collateral_token_keypair,
+                // &user_transfer_authority_keypair,
+            ],
+            recent_blockhash,
+        );
+
+        banks_client
+            .process_transaction(transaction)
+            .await.unwrap();
+
+        print!("signed!!!!!!!!");
+
+        let mut transaction = Transaction::new_with_payer(
+            &[
                 init_reserve(
                     spl_token_lending::id(),
                     liquidity_amount,
@@ -854,21 +909,8 @@ impl TestReserve {
             Some(&payer.pubkey()),
         );
 
-        let recent_blockhash = banks_client.get_recent_blockhash().await.unwrap();
         transaction.sign(
-            &vec![
-                payer,
-                user_accounts_owner,
-                &reserve_keypair,
-                &lending_market.owner,
-                &collateral_mint_keypair,
-                &collateral_supply_keypair,
-                &liquidity_supply_keypair,
-                &liquidity_fee_receiver_keypair,
-                &liquidity_host_keypair,
-                &user_collateral_token_keypair,
-                &user_transfer_authority_keypair,
-            ],
+            &vec![payer, &lending_market.owner, &user_transfer_authority_keypair],
             recent_blockhash,
         );
 
@@ -1222,7 +1264,7 @@ pub fn add_aggregator(test: &mut ProgramTest, pair: TestAggregatorPair) -> TestA
     let mut account = Account::new(
         u32::MAX as u64,
         borsh_utils::get_packed_len::<Aggregator>(),
-        &spl_token_lending::id(),
+        &spl_token::id(),
     );
     let account_info = (&pubkey, false, &mut account).into_account_info();
     aggregator.save(&account_info).unwrap();
