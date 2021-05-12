@@ -27,8 +27,8 @@ export async function createLendingMarket(): Promise<void> {
     100000000000 /* wag */
   );
 
-  console.log("creating quote token mint");
   const quoteMintAuthority = new Account();
+  console.log("Creating quote token mint authority", quoteMintAuthority.publicKey.toBase58());
   const quoteTokenMint = await Token.createMint(
     connection,
     payer,
@@ -37,8 +37,10 @@ export async function createLendingMarket(): Promise<void> {
     2,
     TOKEN_PROGRAM_ID
   );
-
+  
+  console.log("quote token mint: ", quoteTokenMint.publicKey.toBase58())
   const lendingMarketAccount = new Account();
+  console.log("creating lending market", lendingMarketAccount.publicKey.toBase58());
   await LendingMarket.create({
     connection,
     tokenProgramId: TOKEN_PROGRAM_ID,
