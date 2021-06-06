@@ -588,7 +588,7 @@ pub fn init_reserve(
     reserve_liquidity_oracle_pubkey: Option<Pubkey>,
 ) -> Instruction {
     let (lending_market_authority_pubkey, _bump_seed) = Pubkey::find_program_address(
-        &[lending_market_pubkey.as_ref()],
+        &[&lending_market_pubkey.to_bytes()[..PUBKEY_BYTES]],
         &program_id,
     );
     let mut accounts = vec![
@@ -607,7 +607,7 @@ pub fn init_reserve(
         AccountMeta::new_readonly(user_transfer_authority_pubkey, true),
         AccountMeta::new_readonly(sysvar::clock::id(), false),
         AccountMeta::new_readonly(sysvar::rent::id(), false),
-        AccountMeta::new_readonly(token_pubkey, false),
+        AccountMeta::new_readonly(spl_token::id(), false),
     ];
     if let Some(reserve_liquidity_oracle_pubkey) = reserve_liquidity_oracle_pubkey {
         accounts.push(AccountMeta::new_readonly(
@@ -622,7 +622,7 @@ pub fn init_reserve(
             liquidity_amount,
             config,
         }
-        .pack(),
+            .pack(),
     }
 }
 
