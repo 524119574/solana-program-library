@@ -17,7 +17,7 @@ let connection: Connection | undefined;
 async function getConnection(): Promise<Connection> {
   if (connection) return connection;
 
-  connection = new Connection("https://testnet.solana.com", "recent");
+  connection = new Connection("https://devnet.solana.com", "recent");
   const version = await connection.getVersion();
 
 //   console.log("Connection to cluster established:", url, version);

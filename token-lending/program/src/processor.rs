@@ -268,6 +268,7 @@ fn process_init_reserve(
         return Err(LendingError::InvalidAccountInput.into());
     }
 
+    let reserve_liquidity_mint = unpack_mint(&reserve_liquidity_mint_info.data.borrow())?;
     let (reserve_liquidity_oracle_pubkey, reserve_liquidity_market_price) = if &lending_market
         .quote_token_mint
         == reserve_liquidity_mint_info.key
@@ -276,8 +277,10 @@ fn process_init_reserve(
             msg!("Reserve liquidity oracle cannot be provided when reserve liquidity is the quote currency");
             return Err(LendingError::InvalidAccountInput.into());
         }
-        // 1 because quote token price is equal to itself
-        (COption::None, 1)
+        let quote_token_price = 10u64
+            .checked_pow(reserve_liquidity_mint.decimals as u32)
+            .ok_or(LendingError::MathOverflow)?;
+        (COption::None, quote_token_price)
     } else {
         let reserve_liquidity_oracle_info = next_account_info(account_info_iter)?;
         assert_rent_exempt(rent, reserve_liquidity_oracle_info)?;
@@ -309,7 +312,6 @@ fn process_init_reserve(
         return Err(LendingError::InvalidMarketAuthority.into());
     }
 
-    let reserve_liquidity_mint = unpack_mint(&reserve_liquidity_mint_info.data.borrow())?;
     if reserve_liquidity_mint_info.owner != token_program_id.key {
         msg!("Reserve liquidity mint is not owned by the token program provided");
         return Err(LendingError::InvalidTokenOwner.into());
@@ -1805,18 +1807,34 @@ fn spl_token_mint_to(params: TokenMintToParams<'_, '_>) -> ProgramResult {
         amount,
         authority_signer_seeds,
     } = params;
-    let result = invoke_signed(
-        &spl_token::instruction::mint_to(
-            token_program.key,
-            mint.key,
-            destination.key,
-            authority.key,
-            &[],
-            amount,
-        )?,
-        &[mint, destination, authority, token_program],
-        &[authority_signer_seeds],
-    );
+
+    let result = if authority_signer_seeds.is_empty() {
+        invoke(
+            &spl_token::instruction::mint_to(
+                token_program.key,
+                mint.key,
+                destination.key,
+                authority.key,
+                &[],
+                amount,
+            )?,
+            &[mint, destination, authority, token_program],
+        )
+    } else {
+        invoke_signed(
+            &spl_token::instruction::mint_to(
+                token_program.key,
+                mint.key,
+                destination.key,
+                authority.key,
+                &[],
+                amount,
+            )?,
+            &[mint, destination, authority, token_program],
+            &[authority_signer_seeds],
+        )
+    };
+
     result.map_err(|_| LendingError::TokenMintToFailed.into())
 }
 
@@ -1831,18 +1849,33 @@ fn spl_token_burn(params: TokenBurnParams<'_, '_>) -> ProgramResult {
         amount,
         authority_signer_seeds,
     } = params;
-    let result = invoke_signed(
-        &spl_token::instruction::burn(
-            token_program.key,
-            source.key,
-            mint.key,
-            authority.key,
-            &[],
-            amount,
-        )?,
-        &[source, mint, authority, token_program],
-        &[authority_signer_seeds],
-    );
+    let result = if authority_signer_seeds.is_empty() {
+        invoke(
+            &spl_token::instruction::burn(
+                token_program.key,
+                source.key,
+                mint.key,
+                authority.key,
+                &[],
+                amount,
+            )?,
+            &[source, mint, authority, token_program],
+        )
+    } else {
+        invoke_signed(
+            &spl_token::instruction::burn(
+                token_program.key,
+                source.key,
+                mint.key,
+                authority.key,
+                &[],
+                amount,
+            )?,
+            &[source, mint, authority, token_program],
+            &[authority_signer_seeds],
+        )
+    };
+
     result.map_err(|_| LendingError::TokenBurnFailed.into())
 }
 

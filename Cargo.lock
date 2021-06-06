@@ -3971,6 +3971,7 @@ dependencies = [
  "solana-remote-wallet",
  "solana-sdk",
  "spl-associated-token-account 1.0.2",
+ "spl-memo 3.0.1",
  "spl-token 3.1.0",
 ]
 
