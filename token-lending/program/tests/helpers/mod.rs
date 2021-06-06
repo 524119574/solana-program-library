@@ -796,10 +796,19 @@ impl TestReserve {
             .unwrap()
             .unwrap();
         let liquidity_mint = Mint::unpack(&liquidity_mint_account.data[..]).unwrap();
-        println!("before signed!!!");
+
         let rent = banks_client.get_rent().await.unwrap();
         let mut transaction = Transaction::new_with_payer(
             &[
+                approve(
+                    &spl_token::id(),
+                    &user_liquidity_pubkey,
+                    &user_transfer_authority_keypair.pubkey(),
+                    &user_accounts_owner.pubkey(),
+                    &[],
+                    liquidity_amount,
+                )
+                    .unwrap(),
                 create_account(
                     &payer.pubkey(),
                     &collateral_mint_keypair.pubkey(),
@@ -849,44 +858,6 @@ impl TestReserve {
                     Reserve::LEN as u64,
                     &spl_token_lending::id(),
                 ),
-                approve(
-                    &spl_token::id(),
-                    &user_liquidity_pubkey,
-                    &user_transfer_authority_keypair.pubkey(),
-                    &user_accounts_owner.pubkey(),
-                    &[],
-                    liquidity_amount,
-                )
-                .unwrap(),
-            ],
-            Some(&payer.pubkey()),
-        );
-
-        let recent_blockhash = banks_client.get_recent_blockhash().await.unwrap();
-        transaction.sign(
-            &vec![
-                payer,
-                user_accounts_owner,
-                &reserve_keypair,
-                &collateral_mint_keypair,
-                &collateral_supply_keypair,
-                &liquidity_supply_keypair,
-                &liquidity_fee_receiver_keypair,
-                &liquidity_host_keypair,
-                &user_collateral_token_keypair,
-                // &user_transfer_authority_keypair,
-            ],
-            recent_blockhash,
-        );
-
-        banks_client
-            .process_transaction(transaction)
-            .await.unwrap();
-
-        print!("signed!!!!!!!!");
-
-        let mut transaction = Transaction::new_with_payer(
-            &[
                 init_reserve(
                     spl_token_lending::id(),
                     liquidity_amount,
@@ -909,8 +880,21 @@ impl TestReserve {
             Some(&payer.pubkey()),
         );
 
+        let recent_blockhash = banks_client.get_recent_blockhash().await.unwrap();
         transaction.sign(
-            &vec![payer, &lending_market.owner, &user_transfer_authority_keypair],
+            &vec![
+                payer,
+                user_accounts_owner,
+                &reserve_keypair,
+                &lending_market.owner,
+                &collateral_mint_keypair,
+                &collateral_supply_keypair,
+                &liquidity_supply_keypair,
+                &liquidity_fee_receiver_keypair,
+                &liquidity_host_keypair,
+                &user_collateral_token_keypair,
+                &user_transfer_authority_keypair,
+            ],
             recent_blockhash,
         );
 
