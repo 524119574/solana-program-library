@@ -33,39 +33,21 @@ const KEYPAIR_PATH: &str = "/Users/wangge/.config/solana";
 const LOCAL_NET_URL: &str = "http://127.0.0.1:8899";
 const DEV_NET_URL: &str = "https://devnet.solana.com";
 const TEST_NET_URL: &str = "https://testnet.solana.com";
-const TEST_NET_PROGRAM: &str = "7cFfVGp6mAtBFsjp5GtjHZjLJEDdfEnG2QfuVUUeyGrY";
-const DEV_NET_PROGRAM: &str = "3VQHdbsvViEnswYSQeQNL4innSx2jeJascCnUWdxAYyA";
-const LOCAL_NET_PROGRAM: &str = "6isVZdDrR7dFpCjNJWvcBCGbUH3t4YdZSWxohRN5nRPE";
-// solana_program::declare_id!("8c3365TtDi9LdzNBTD5Dvj3f45NWEf18nJVDD9JmTPG5");
-// solana_program::declare_id!("FXwW528o7nG6aRCfmcj39jnuHLVg24aa5mVkdnSVG8yD"); // test net version
-// solana_program::declare_id!("Df7Qa7N6B5hopUPHCvWVoPVZAdYFNCQorWcZAnukdhws");
-solana_program::declare_id!("3dQ9quWN8gjqRhrtaQhxGpKU2fLjCz4bAVuzmjms7Rxg");
+// solana_program::declare_id!("Df7Qa7N6B5hopUPHCvWVoPVZAdYFNCQorWcZAnukdhws");  // test net version
+// solana_program::declare_id!("3dQ9quWN8gjqRhrtaQhxGpKU2fLjCz4bAVuzmjms7Rxg");  // dev net version
+solana_program::declare_id!("CD3kxqJQAs7qLvBefSiYcMYd86PUdasaKoMfSHrCGFJG");  // local net version, fixed bug version
+const SRM_ORACLE: &str = "AWSEj9Yx6LR3UDoXb4v26tGLBYCjCdxtbcLAicEF4i6M";
+const SOL_ORACLE: &str = "AY2U3MUm9NLBkLU3ws9UzEqadn2m1K6JvRvLBanQAafo";
+
 // -------- UPDATE END ---------
 
 pub fn main() {
-    const CURRENT_NETWORK: &str = DEV_NET_URL;
+    const CURRENT_NETWORK: &str = LOCAL_NET_URL;
     println!("current network: {}", CURRENT_NETWORK);
     let mut client = RpcClient::new(CURRENT_NETWORK.to_owned());
 
     let payer = read_keypair_file(&format!("{}/id.json", KEYPAIR_PATH)).unwrap();
     init_lending_market_and_reserves(&mut client, &payer);
-    // mint_to_receiver(
-    //     &mut client,
-    //     &payer,
-    //     Pubkey::from_str("8czHxiYxy1Ek2LcEktnsa3sBKstf4Kz6YoySHWUqNDYU").unwrap(),
-    //     Pubkey::from_str("3U34Xi9z9vfsb9oo2GjUdnyojmrnwV4HuY4ieKye8LCZ").unwrap(),
-    // )
-
-    // refresh_reserve_action(
-    //     &mut client,
-    //     &payer,
-    //     Pubkey::from_str("G7NxqmVYcb6XDPv7NL1FEchhgvUf6azijsPtTySFdrGT").unwrap(),
-    //     Some(Pubkey::from_str("B28fYyBaDMLkYfZWNUok6cnFceLzPEpdTXdVngep1KuA").unwrap()),
-    // )
-    // let obligation_owner =
-    // let obligation_data =client.get_account_data(&Pubkey::from_str("7GuiMU9PHAaqqUWkfYcnRnsYvibSuEf2MjA6inW4GjkX").unwrap()).unwrap();
-    // let obligation = Obligation::unpack(&obligation_data).unwrap();
-    // println!("obligation borrow pub key: {}", obligation.borrows[0].borrow_reserve);
 }
 
 fn init_obligation_action(
@@ -288,8 +270,8 @@ fn supply_fund_to_reserve(
 }
 
 fn init_lending_market_and_reserves(mut client: &mut RpcClient, payer: &Keypair) {
-    let srm_oracle_pubkey = Pubkey::from_str("JCAp73wmNYmTBpMogAdY5f7T4Lnj6o3tZdJwfsrcPgbi").unwrap();
-    let sol_oracle_pubkey = Pubkey::from_str("Fjavm3Z2dL2KxPeZnmUw1kfDmLJnfPgfXaog3rUzXYP7").unwrap();
+    let srm_oracle_pubkey = Pubkey::from_str(SRM_ORACLE).unwrap();
+    let sol_oracle_pubkey = Pubkey::from_str(SOL_ORACLE).unwrap();
 
     let (fake_usdc_mint_pubkey, fake_usdc_token_account_pubkey) = create_and_mint_tokens(
         &mut client,
@@ -584,19 +566,6 @@ pub fn create_reserve(
     );
 
     client.send_and_confirm_transaction(&transaction).unwrap();
-
-    // supply_fund_to_reserve(
-    //     client,
-    //     lending_market_pubkey,
-    //     liquidity_source_pubkey,
-    //     user_collateral_token_keypair.pubkey(),
-    //     reserve_pubkey,
-    //     liquidity_supply_keypair.pubkey(),
-    //     collateral_mint_keypair.pubkey(),
-    //     payer,
-    //     &user_transfer_authority_keypair,
-    //     liquidity_oracle_pubkey,
-    // );
 
     let account = client.get_account(&reserve_pubkey).unwrap();
     (reserve_pubkey, Reserve::unpack(&account.data).unwrap())

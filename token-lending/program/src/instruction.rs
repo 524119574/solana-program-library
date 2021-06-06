@@ -533,7 +533,6 @@ pub fn init_lending_market(
     lending_market_pubkey: Pubkey,
     lending_market_owner: Pubkey,
     quote_token_mint: Pubkey,
-    token_id: Pubkey,
 ) -> Instruction {
     Instruction {
         program_id,
@@ -541,12 +540,12 @@ pub fn init_lending_market(
             AccountMeta::new(lending_market_pubkey, false),
             AccountMeta::new_readonly(quote_token_mint, false),
             AccountMeta::new_readonly(sysvar::rent::id(), false),
-            AccountMeta::new_readonly(token_id, false),
+            AccountMeta::new_readonly(spl_token::id(), false),
         ],
         data: LendingInstruction::InitLendingMarket {
             owner: lending_market_owner,
         }
-        .pack(),
+            .pack(),
     }
 }
 
