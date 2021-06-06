@@ -545,7 +545,7 @@ pub fn init_lending_market(
         data: LendingInstruction::InitLendingMarket {
             owner: lending_market_owner,
         }
-            .pack(),
+        .pack(),
     }
 }
 
@@ -621,7 +621,7 @@ pub fn init_reserve(
             liquidity_amount,
             config,
         }
-            .pack(),
+        .pack(),
     }
 }
 
