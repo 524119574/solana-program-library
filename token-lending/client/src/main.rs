@@ -14,7 +14,7 @@ use solana_sdk::{
 
 use spl_token::instruction::{initialize_account, initialize_mint, mint_to};
 use spl_token::state::Account;
-use spl_token::{instruction::approve, state::Mint};
+use spl_token::{instruction::approve, state::{Account as Token, Mint}};
 use spl_token_lending::instruction::{
     deposit_reserve_liquidity, init_obligation, redeem_reserve_collateral, refresh_reserve,
 };
@@ -23,22 +23,32 @@ use spl_token_lending::{
     instruction::{init_lending_market, init_reserve},
     state::{LendingMarket, Reserve, ReserveConfig, ReserveFees},
 };
+use solana_sdk::commitment_config::CommitmentLevel::Finalized;
 
 // -------- UPDATE START -------
+const QUOTE_CURRENCY: [u8; 32] =
+    *b"USD\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0";
+const PYTH_PROGRAM_ID: &str = "5mkqGkkWSaSk2NL9p4XptwEQu4d5jFTJiurbbzdqYexF"; // dev net
+const SRM_PRODUCT: &str = "5agdsn3jogTt8F537GW3g8BuLaBGrg9Q2gPKUNqBV6Dh";
+const SRM_ORACLE: &str = "2Mt2wcRXpCAbTRp2VjFqGa8SbJVzjJvyK4Tx7aqbRtBJ";
+const SOL_PRODUCT: &str = "8yrQMUyJRnCJ72NWwMiPV9dNGw465Z8bKUvnUC8P5L6F";
+const SOL_ORACLE: &str = "BdgHsXrH1mXqhdosXavYxZgX6bGqTdj5mh2sxDhF8bJy";
+const USDC_PRODUCT: &str = "3P3yEgE9TGxAuangJA5RMCj3cJdUhytAQVNfeT4DJT8k";
+const USDC_ORACLE: &str = "ELRxuFThqnE4BdjCPKk7mFh4fJFkpNCvKSjhufoCChYK";
 const KEYPAIR_PATH: &str = "/Users/wangge/.config/solana";
 const LOCAL_NET_URL: &str = "http://127.0.0.1:8899";
 const DEV_NET_URL: &str = "https://devnet.solana.com";
 const TEST_NET_URL: &str = "https://testnet.solana.com";
 // solana_program::declare_id!("Df7Qa7N6B5hopUPHCvWVoPVZAdYFNCQorWcZAnukdhws");  // test net version
 // solana_program::declare_id!("3dQ9quWN8gjqRhrtaQhxGpKU2fLjCz4bAVuzmjms7Rxg");  // dev net version
-solana_program::declare_id!("CD3kxqJQAs7qLvBefSiYcMYd86PUdasaKoMfSHrCGFJG"); // local net version, fixed bug version
-const SRM_ORACLE: &str = "AWSEj9Yx6LR3UDoXb4v26tGLBYCjCdxtbcLAicEF4i6M";
-const SOL_ORACLE: &str = "AY2U3MUm9NLBkLU3ws9UzEqadn2m1K6JvRvLBanQAafo";
+// solana_program::declare_id!("CD3kxqJQAs7qLvBefSiYcMYd86PUdasaKoMfSHrCGFJG"); // local net version, fixed bug version
+solana_program::declare_id!("6NCcdH81mofVvLc5rN5WpxL6YqCW3ZYqZuyVCCW7QrQx"); // dev net, Pyth
+
 
 // -------- UPDATE END ---------
 
 pub fn main() {
-    const CURRENT_NETWORK: &str = LOCAL_NET_URL;
+    const CURRENT_NETWORK: &str = DEV_NET_URL;
     println!("current network: {}", CURRENT_NETWORK);
     let mut client = RpcClient::new(CURRENT_NETWORK.to_owned());
 
@@ -74,7 +84,7 @@ fn refresh_reserve_action(
     client: &mut RpcClient,
     payer: &Keypair,
     reserve: Pubkey,
-    oracle: Option<Pubkey>,
+    oracle: Pubkey,
 ) {
     let recent_blockhash = client.get_recent_blockhash().unwrap().0;
     let mut transaction = Transaction::new_with_payer(
@@ -144,7 +154,7 @@ fn supply_fund_to_reserve(
     collateral_mint_pubkey: Pubkey,
     payer: &Keypair,
     collateral_key_pair: &Keypair,
-    oracle_pubkey: Option<Pubkey>,
+    oracle_pubkey: Pubkey,
 ) {
     let recent_blockhash = client.get_recent_blockhash().unwrap().0;
 
@@ -255,7 +265,7 @@ fn init_lending_market_and_reserves(mut client: &mut RpcClient, payer: &Keypair)
     );
 
     let (lending_market_owner, lending_market_pubkey, _lending_market) =
-        create_lending_market(&mut client, fake_usdc_mint_pubkey, &payer);
+        create_lending_market(&mut client, &payer);
     println!("Created lending market: {} ", lending_market_pubkey);
 
     let usdc_reserve_config = ReserveConfig {
@@ -278,9 +288,9 @@ fn init_lending_market_and_reserves(mut client: &mut RpcClient, payer: &Keypair)
         usdc_reserve_config,
         lending_market_pubkey,
         &lending_market_owner,
-        None,
+        Pubkey::from_str(USDC_PRODUCT).unwrap(),
+        Pubkey::from_str(USDC_ORACLE).unwrap(),
         fake_usdc_token_account_pubkey,
-        fake_usdc_mint_pubkey,
         &payer,
     );
 
@@ -314,9 +324,9 @@ fn init_lending_market_and_reserves(mut client: &mut RpcClient, payer: &Keypair)
         sol_reserve_config,
         lending_market_pubkey,
         &lending_market_owner,
-        Some(sol_oracle_pubkey),
+        Pubkey::from_str(SOL_PRODUCT).unwrap(),
+        Pubkey::from_str(SOL_ORACLE).unwrap(),
         fake_sol_token_account_pubkey,
-        fake_usdc_mint_pubkey,
         &payer,
     );
 
@@ -350,9 +360,9 @@ fn init_lending_market_and_reserves(mut client: &mut RpcClient, payer: &Keypair)
         srm_reserve_config,
         lending_market_pubkey,
         &lending_market_owner,
-        Some(srm_oracle_pubkey),
+        Pubkey::from_str(SRM_PRODUCT).unwrap(),
+        Pubkey::from_str(SRM_ORACLE).unwrap(),
         fake_srm_token_account_pubkey,
-        fake_usdc_mint_pubkey,
         &payer,
     );
 
@@ -361,7 +371,6 @@ fn init_lending_market_and_reserves(mut client: &mut RpcClient, payer: &Keypair)
 
 pub fn create_lending_market(
     client: &mut RpcClient,
-    quote_token_mint: Pubkey,
     payer: &Keypair,
 ) -> (Keypair, Pubkey, LendingMarket) {
     let owner = read_keypair_file(&format!("{}/id.json", KEYPAIR_PATH)).unwrap();
@@ -379,7 +388,12 @@ pub fn create_lending_market(
                 LendingMarket::LEN as u64,
                 &id(),
             ),
-            init_lending_market(id(), pubkey, owner.pubkey(), quote_token_mint),
+            init_lending_market(
+                id(),
+                owner.pubkey(),
+                QUOTE_CURRENCY,
+                pubkey,
+                Pubkey::from_str(PYTH_PROGRAM_ID).unwrap()),
         ],
         Some(&payer.pubkey()),
     );
@@ -398,9 +412,9 @@ pub fn create_reserve(
     config: ReserveConfig,
     lending_market_pubkey: Pubkey,
     lending_market_owner: &Keypair,
-    liquidity_oracle_pubkey: Option<Pubkey>,
+    liquidity_product_pubkey: Pubkey,
+    liquidity_oracle_pubkey: Pubkey,
     liquidity_source_pubkey: Pubkey,
-    quote_token_mint_pubkey: Pubkey,
     payer: &Keypair,
 ) -> (Pubkey, Reserve) {
     let reserve_keypair = Keypair::new();
@@ -523,11 +537,11 @@ pub fn create_reserve(
                 liquidity_fee_receiver_keypair.pubkey(),
                 collateral_mint_keypair.pubkey(),
                 collateral_supply_keypair.pubkey(),
-                quote_token_mint_pubkey,
+                liquidity_product_pubkey,
+                liquidity_oracle_pubkey,
                 lending_market_pubkey,
                 lending_market_owner.pubkey(),
                 user_transfer_authority_keypair.pubkey(),
-                liquidity_oracle_pubkey,
             ),
         ],
         Some(&payer.pubkey()),
