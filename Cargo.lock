@@ -3967,7 +3967,7 @@ dependencies = [
  "solana-client",
  "solana-program",
  "solana-sdk",
- "spl-token 3.1.0",
+ "spl-token 3.1.1",
  "spl-token-lending",
 ]
 
