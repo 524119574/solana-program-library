@@ -235,10 +235,9 @@ pub enum LendingInstruction {
     ///   2. `[writable]` Repay reserve account - refreshed.
     ///   3. `[writable]` Obligation account - refreshed.
     ///   4. `[]` Lending market account.
-    ///   5. `[]` Derived lending market authority.
-    ///   6. `[signer]` User transfer authority ($authority).
-    ///   7. `[]` Clock sysvar.
-    ///   8. `[]` Token program id.
+    ///   5. `[signer]` User transfer authority ($authority).
+    ///   6. `[]` Clock sysvar.
+    ///   7. `[]` Token program id.
     RepayObligationLiquidity {
         /// Amount of liquidity to repay - u64::MAX for 100% of borrowed amount
         liquidity_amount: u64,
@@ -554,6 +553,7 @@ pub fn init_lending_market(
     program_id: Pubkey,
     owner: Pubkey,
     quote_currency: [u8; 32],
+    lending_market_pubkey: Pubkey,
     oracle_program_id: Pubkey,
 ) -> Instruction {
     Instruction {
@@ -622,7 +622,8 @@ pub fn init_reserve(
         AccountMeta::new(reserve_liquidity_fee_receiver_pubkey, false),
         AccountMeta::new(reserve_collateral_mint_pubkey, false),
         AccountMeta::new(reserve_collateral_supply_pubkey, false),
-        AccountMeta::new_readonly(quote_token_mint_pubkey, false),
+        AccountMeta::new_readonly(pyth_product_pubkey, false),
+        AccountMeta::new_readonly(pyth_price_pubkey, false),
         AccountMeta::new_readonly(lending_market_pubkey, false),
         AccountMeta::new_readonly(lending_market_authority_pubkey, false),
         AccountMeta::new_readonly(lending_market_owner_pubkey, true),

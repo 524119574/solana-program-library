@@ -1,4 +1,5 @@
 //! Program state processor
+
 use crate::{
     error::LendingError,
     instruction::LendingInstruction,
@@ -109,7 +110,6 @@ fn process_init_lending_market(
 ) -> ProgramResult {
     let account_info_iter = &mut accounts.iter();
     let lending_market_info = next_account_info(account_info_iter)?;
-    let quote_token_mint_info = next_account_info(account_info_iter)?;
     let rent = &Rent::from_account_info(next_account_info(account_info_iter)?)?;
     let token_program_id = next_account_info(account_info_iter)?;
     let oracle_program_id = next_account_info(account_info_iter)?;
@@ -121,10 +121,8 @@ fn process_init_lending_market(
         return Err(LendingError::InvalidAccountOwner.into());
     }
 
-    let seed = Pubkey::find_program_address(&[lending_market_info.key.as_ref()], program_id).1;
-    msg!("seed {}", seed);
     lending_market.init(InitLendingMarketParams {
-        bump_seed: seed,
+        bump_seed: Pubkey::find_program_address(&[lending_market_info.key.as_ref()], program_id).1,
         owner,
         quote_currency,
         token_program_id: *token_program_id.key,
@@ -421,6 +419,7 @@ fn process_refresh_reserve(program_id: &Pubkey, accounts: &[AccountInfo]) -> Pro
     }
 
     reserve.liquidity.market_price = get_pyth_price(reserve_liquidity_oracle_info, clock)?;
+
     reserve.accrue_interest(clock.slot)?;
     reserve.last_update.update_slot(clock.slot);
     Reserve::pack(reserve, &mut reserve_info.data.borrow_mut())?;
@@ -763,17 +762,19 @@ fn process_refresh_obligation(program_id: &Pubkey, accounts: &[AccountInfo]) -> 
             return Err(LendingError::ReserveStale.into());
         }
 
+        liquidity.accrue_interest(borrow_reserve.liquidity.cumulative_borrow_rate_wads)?;
+
         // @TODO: add lookup table https://git.io/JOCYq
         let decimals = 10u64
             .checked_pow(borrow_reserve.liquidity.mint_decimals as u32)
             .ok_or(LendingError::MathOverflow)?;
 
-        liquidity.accrue_interest(borrow_reserve.liquidity.cumulative_borrow_rate_wads)?;
         let market_value = liquidity
             .borrowed_amount_wads
             .try_mul(borrow_reserve.liquidity.market_price)?
             .try_div(decimals)?;
         liquidity.market_value = market_value;
+
         borrowed_value = borrowed_value.try_add(market_value)?;
     }
 

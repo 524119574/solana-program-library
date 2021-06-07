@@ -20,7 +20,7 @@ use spl_token_lending::{
 use std::u64;
 
 #[tokio::test]
-async fn test_borrow_quote_currency() {
+async fn test_borrow_usdc_fixed_amount() {
     let mut test = ProgramTest::new(
         "spl_token_lending",
         spl_token_lending::id(),
@@ -40,7 +40,6 @@ async fn test_borrow_quote_currency() {
     const USDC_RESERVE_LIQUIDITY_FRACTIONAL: u64 = 2 * USDC_TOTAL_BORROW_FRACTIONAL;
 
     let user_accounts_owner = Keypair::new();
-    let usdc_mint = add_usdc_mint(&mut test);
     let lending_market = add_lending_market(&mut test);
 
     let mut reserve_config = TEST_RESERVE_CONFIG;
@@ -169,7 +168,7 @@ async fn test_borrow_quote_currency() {
 }
 
 #[tokio::test]
-async fn test_borrow_max_base_currency() {
+async fn test_borrow_sol_max_amount() {
     let mut test = ProgramTest::new(
         "spl_token_lending",
         spl_token_lending::id(),
@@ -189,7 +188,6 @@ async fn test_borrow_max_base_currency() {
     const SOL_RESERVE_LIQUIDITY_LAMPORTS: u64 = 2 * SOL_BORROW_AMOUNT_LAMPORTS;
 
     let user_accounts_owner = Keypair::new();
-    let usdc_mint = add_usdc_mint(&mut test);
     let lending_market = add_lending_market(&mut test);
 
     let mut reserve_config = TEST_RESERVE_CONFIG;
@@ -324,7 +322,6 @@ async fn test_borrow_too_large() {
     const USDC_RESERVE_LIQUIDITY_FRACTIONAL: u64 = 2 * USDC_BORROW_AMOUNT_FRACTIONAL;
 
     let user_accounts_owner = Keypair::new();
-    let usdc_mint = add_usdc_mint(&mut test);
     let lending_market = add_lending_market(&mut test);
 
     let mut reserve_config = TEST_RESERVE_CONFIG;

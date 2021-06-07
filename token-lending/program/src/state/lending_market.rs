@@ -91,6 +91,7 @@ impl Pack for LendingMarket {
             PUBKEY_BYTES,
             128
         ];
+
         *version = self.version.to_le_bytes();
         *bump_seed = self.bump_seed.to_le_bytes();
         owner.copy_from_slice(self.owner.as_ref());
