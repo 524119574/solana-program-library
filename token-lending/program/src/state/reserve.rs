@@ -434,8 +434,15 @@ impl ReserveLiquidity {
             .available_amount
             .checked_add(repay_amount)
             .ok_or(LendingError::MathOverflow)?;
-        self.borrowed_amount_wads = self.borrowed_amount_wads.try_sub(settle_amount)?;
-
+        // quick hack around the math overflow issue that happens here
+        // when attempting to repay the full borrowed value using `u64::MAX`
+        // see https://github.com/solana-labs/solana-program-library/issues/1871
+        // self.borrowed_amount_wads = self.borrowed_amount_wads.try_sub(settle_amount)?;
+        if settle_amount >= self.borrowed_amount_wads {
+            self.borrowed_amount_wads = Decimal::zero();
+        } else {
+            self.borrowed_amount_wads = self.borrowed_amount_wads.try_sub(settle_amount)?;
+        }
         Ok(())
     }
 
