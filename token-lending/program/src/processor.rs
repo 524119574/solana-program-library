@@ -274,7 +274,7 @@ fn process_init_reserve(
         msg!("Pyth product account provided is not a valid Pyth account");
         return Err(LendingError::InvalidOracleConfig.into());
     }
-    if pyth_product.ver != pyth::VERSION_1 {
+    if pyth_product.ver != pyth::VERSION {
         msg!("Pyth product account provided has a different version than expected");
         return Err(LendingError::InvalidOracleConfig.into());
     }
