@@ -42,8 +42,7 @@ const TEST_NET_URL: &str = "https://testnet.solana.com";
 // solana_program::declare_id!("Df7Qa7N6B5hopUPHCvWVoPVZAdYFNCQorWcZAnukdhws");  // test net version
 // solana_program::declare_id!("3dQ9quWN8gjqRhrtaQhxGpKU2fLjCz4bAVuzmjms7Rxg");  // dev net version
 // solana_program::declare_id!("CD3kxqJQAs7qLvBefSiYcMYd86PUdasaKoMfSHrCGFJG"); // local net version, fixed bug version
-solana_program::declare_id!("6NCcdH81mofVvLc5rN5WpxL6YqCW3ZYqZuyVCCW7QrQx"); // dev net, Pyth
-
+solana_program::declare_id!("Portu7Px33tF2iyfdWqF8oDRR2uKPM5RF5J1DPdktNY"); // dev net, Pyth
 
 // -------- UPDATE END ---------
 
@@ -253,9 +252,6 @@ fn supply_fund_to_reserve(
 }
 
 fn init_lending_market_and_reserves(mut client: &mut RpcClient, payer: &Keypair) {
-    let srm_oracle_pubkey = Pubkey::from_str(SRM_ORACLE).unwrap();
-    let sol_oracle_pubkey = Pubkey::from_str(SOL_ORACLE).unwrap();
-
     let (fake_usdc_mint_pubkey, fake_usdc_token_account_pubkey) =
         create_and_mint_tokens(&mut client, 6, &payer);
 
